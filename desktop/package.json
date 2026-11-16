@@ -1,0 +1,13 @@
+{
+  "name": "meeting-companion-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "45.3.2"
+  }
+}
+
