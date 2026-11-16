@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Meeting Companion",
+  "version": "0.1.0",
+  "description": "Consent-based meeting transcripts, summaries and draft answers in a separate window.",
+  "minimum_chrome_version": "116",
+  "action": {"default_title": "Open Meeting Companion"},
+  "background": {"service_worker": "background.js"},
+  "host_permissions": ["https://api.openai.com/*"],
+  "content_security_policy": {"extension_pages": "script-src 'self'; object-src 'none'; connect-src https://api.openai.com"}
+}
+
