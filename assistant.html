@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src https://api.openai.com; media-src 'self' blob:; img-src 'self' data:">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Meeting Companion</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- â•â•â• Top Bar â•â•â• -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">m</span>
+      <div>
+        <strong>Meeting Companion</strong>
+        <small>Your conversation workspace</small>
+      </div>
+    </div>
+    <div class="window-actions">
+      <button id="compact" class="secondary desktop-only">Compact</button>
+      <button id="hide" class="secondary desktop-only" title="Hide overlay (Ctrl+Shift+Space)">Hide</button>
+      <button id="quit" class="secondary desktop-only" title="Close app and stop capture">Ã—</button>
+    </div>
+  </header>
+
+  <!-- â•â•â• Session Bar â•â•â• -->
+  <div class="sessionbar">
+    <span id="recordingDot" class="dot"></span>
+    <span id="clock">00:00</span>
+    <span id="sessionLabel">Ready for your next conversation</span>
+    <span id="protection" class="badge">Separate window</span>
+  </div>
+
+  <!-- â•â•â• Navigation â•â•â• -->
+  <nav aria-label="Workspace">
+    <button data-tab="live" class="selected">Live assist</button>
+    <button data-tab="history">Meetings</button>
+    <button data-tab="context">Context</button>
+    <button data-tab="settings">Settings</button>
+  </nav>
+
+  <p id="status" role="status" aria-live="polite">Add your API key in Settings, then start a session.</p>
+
+  <!-- â•â•â• Toast Container â•â•â• -->
+  <div id="toasts" aria-live="polite"></div>
+
+  <main>
+
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- Live Assist Tab                             -->
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <div id="live" class="tab-panel">
+
+      <!-- Capture Controls -->
+      <section class="capture-panel">
+        <div class="section-title">
+          <input id="meetingTitle" aria-label="Meeting title" placeholder="Untitled meeting">
+          <div class="actions">
+            <button id="start">Start session</button>
+            <button id="stop" disabled class="secondary">Stop</button>
+          </div>
+        </div>
+        <label class="check">
+          <input type="checkbox" id="consent"> Participants have agreed to capture and AI processing.
+        </label>
+        <div class="toggles">
+          <label class="check"><input type="checkbox" id="mic"> My microphone</label>
+          <label class="check"><input type="checkbox" id="vision" checked> Screen context</label>
+          <label class="check"><input type="checkbox" id="auto"> Auto assist</label>
+          <label class="check"><input type="checkbox" id="screenDetect"> Detect screen questions</label>
+        </div>
+      </section>
+
+      <!-- AI Assistant -->
+      <section class="assistant-panel">
+        <div class="section-title">
+          <h2>A little help, right when you need it.</h2>
+          <label class="check"><input id="smart" type="checkbox"> Web research</label>
+        </div>
+        <div class="quick-actions">
+          <button id="say" class="secondary" title="Suggest what to say next">What should I say?</button>
+          <button id="followup" class="secondary" title="Generate follow-up questions">Follow-up questions</button>
+          <button id="recap" class="secondary" title="Summarize the conversation so far">Catch me up</button>
+          <button id="email" class="secondary" title="Draft a follow-up email">Draft follow-up email</button>
+        </div>
+        <pre id="reply" aria-live="polite">Start a conversation or ask a question. Your answer will appear here.</pre>
+        <div id="sources"></div>
+        <div class="composer">
+          <textarea id="question" rows="2" placeholder="Ask about your conversation or screenâ€¦"></textarea>
+          <div class="section-title">
+            <small>Ctrl+Shift+Enter to assist</small>
+            <button id="answer" title="Draft an answer (Ctrl+Shift+Enter)">Assist â†—</button>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="copyReply" class="secondary">Copy answer</button>
+          <label class="check"><input id="useHistory" type="checkbox"> Include saved meetings</label>
+        </div>
+      </section>
+
+      <!-- Meeting Notes -->
+      <section>
+        <div class="section-title">
+          <h2>Meeting notes</h2>
+          <button id="summary" class="secondary" title="Generate notes (Ctrl+Shift+S)">Generate notes</button>
+        </div>
+        <textarea id="meetingNotes" rows="5" placeholder="Generate or write meeting notes, decisions, and next stepsâ€¦"></textarea>
+        <div class="actions">
+          <button id="saveMeeting">Save meeting locally</button>
+          <button id="export" class="secondary">Export Markdown</button>
+        </div>
+        <small>Saving stores this transcript, notes, and answers on this device. API keys are never saved.</small>
+      </section>
+
+      <!-- Live Transcript -->
+      <section>
+        <div class="section-title">
+          <h2>Live transcript</h2>
+          <span id="transcriptCount" class="transcript-count"></span>
+          <button id="copyTranscript" class="secondary">Copy</button>
+        </div>
+        <small>Audio is processed in segments, not instant streaming. Speaker identities are not assigned.</small>
+        <div id="transcript" role="log"></div>
+        <div class="actions">
+          <button id="clear" class="secondary">New meeting</button>
+          <button id="clearChat" class="secondary">Clear AI conversation</button>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- Meetings Tab                                -->
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <div id="history" class="tab-panel" hidden>
+      <section>
+        <span class="eyebrow">YOUR MEETING LIBRARY</span>
+        <h1>Keep the useful parts.</h1>
+        <p>Search saved meetings, reopen notes, or continue a conversation.</p>
+        <input id="historySearch" type="search" placeholder="Search titles, notes, and transcriptsâ€¦">
+        <div id="meetingList"></div>
+        <small>Stored locally in this app profile. No cloud sync or public sharing links.</small>
+      </section>
+    </div>
+
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- Context Tab                                 -->
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <div id="context" class="tab-panel" hidden>
+      <section>
+        <span class="eyebrow">PERSONALIZE YOUR ASSISTANT</span>
+        <h1>Bring your context.</h1>
+
+        <label for="mode">Conversation mode</label>
+        <select id="mode">
+          <option value="general">General meeting</option>
+          <option value="technical">Technical discussion</option>
+          <option value="sales">Sales conversation</option>
+          <option value="learning">Learning &amp; explanations</option>
+        </select>
+
+        <label for="customPrompt">Your instructions</label>
+        <textarea id="customPrompt" rows="5" placeholder="My role isâ€¦ Keep replies brief. Help me clarify requirementsâ€¦"></textarea>
+
+        <label for="noteTemplate">Meeting notes template</label>
+        <textarea id="noteTemplate" rows="4">Summary
+Decisions
+Action items (owner and deadline only if stated)
+Open questions</textarea>
+
+        <label for="contextFiles">Reference files</label>
+        <input id="contextFiles" type="file" accept=".txt,.md,.csv,.json" multiple>
+        <small>Up to 3 text files, 100 KB each; up to 20,000 characters total. Contents are sent with AI requests. PDF and Word import are not supported yet.</small>
+        <div id="fileList"></div>
+        <button id="clearFiles" class="secondary">Remove files</button>
+
+        <p><button id="savePreferences">Save preferences</button></p>
+        <small>Instructions and preferences save locally. File contents stay in memory until this window closes.</small>
+      </section>
+    </div>
+
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- Settings Tab                                -->
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <div id="settings" class="tab-panel" hidden>
+      <section>
+        <span class="eyebrow">SETTINGS</span>
+        <h1>Make it yours.</h1>
+
+        <label for="key">OpenAI API key</label>
+        <input id="key" type="password" placeholder="sk-â€¦" autocomplete="off">
+        <small>Memory only. Your API account is billed for audio, answers, and optional web search.</small>
+
+        <div class="models">
+          <div>
+            <label for="model">Answer model</label>
+            <input id="model" value="gpt-4.1-mini">
+          </div>
+          <div>
+            <label for="audioModel">Transcription model</label>
+            <input id="audioModel" value="gpt-4o-mini-transcribe">
+          </div>
+        </div>
+
+        <div class="models">
+          <div>
+            <label for="language">Transcript language</label>
+            <select id="language">
+              <option value="">Auto detect</option>
+              <option value="en">English</option>
+              <option value="hi">Hindi</option>
+              <option value="es">Spanish</option>
+              <option value="fr">French</option>
+              <option value="de">German</option>
+              <option value="zh">Chinese</option>
+              <option value="ja">Japanese</option>
+              <option value="pt">Portuguese</option>
+              <option value="ar">Arabic</option>
+            </select>
+          </div>
+          <div>
+            <label for="outputLanguage">Answer language</label>
+            <select id="outputLanguage">
+              <option value="">Match the question</option>
+              <option>English</option>
+              <option>Hindi</option>
+              <option>Spanish</option>
+              <option>French</option>
+              <option>German</option>
+              <option>Chinese</option>
+              <option>Japanese</option>
+              <option>Portuguese</option>
+              <option>Arabic</option>
+            </select>
+          </div>
+        </div>
+
+        <label for="interval">Transcription interval</label>
+        <select id="interval">
+          <option value="6000">6 seconds (more requests)</option>
+          <option value="12000" selected>12 seconds (balanced)</option>
+          <option value="20000">20 seconds (fewer requests)</option>
+        </select>
+
+        <label for="scanInterval">Screen question scan interval</label>
+        <select id="scanInterval">
+          <option value="3000">3 seconds (aggressive)</option>
+          <option value="5000" selected>5 seconds (balanced)</option>
+          <option value="8000">8 seconds (conservative)</option>
+          <option value="12000">12 seconds (minimal cost)</option>
+        </select>
+
+        <label class="check"><input id="autoNotes" type="checkbox"> Generate notes after stopping (uses API)</label>
+        <label class="check"><input id="lightTheme" type="checkbox"> Light appearance</label>
+
+        <button id="saveSettings">Save preferences</button>
+      </section>
+
+      <section class="desktop-only">
+        <h2>Overlay controls</h2>
+        <label for="opacity">Window opacity</label>
+        <input id="opacity" type="range" min="60" max="100" value="100">
+        <p>Global shortcuts: <b>Ctrl+Shift+Enter</b> assist, <b>Ctrl+Shift+Space</b> show/hide, <b>Ctrl+Alt+Arrow</b> move.</p>
+        <small id="shortcutStatus"></small>
+      </section>
+
+      <section>
+        <h2>Capture privacy</h2>
+        <small id="sharingHelp">Choose the meeting tab and enable Share tab audio. Keep this separate window outside your shared tab or window. Entire-screen sharing may show this window.</small>
+      </section>
+    </div>
+
+  </main>
+
+  <script src="assistant.js"></script>
+  <script src="workspace.js"></script>
+</body>
+</html>
+
