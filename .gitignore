@@ -1,0 +1,9 @@
+desktop/node_modules/
+desktop/test-results/
+desktop/test-output.log
+desktop/test-error.log
+*.local
+.env
+.env.*
+!*.env.example
+
